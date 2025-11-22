@@ -16,12 +16,12 @@ const transactionRoutes = require('./src/routes/transactionRoutes');
 
 const app = express();
 const server = http.createServer(app); 
-
+const allowedOrigin = process.env.CLIENT_URL || "http://localhost:3000";
 
 // Setup Socket.io
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000", // URL Frontend nanti (Next.js)
+    origin: allowedOrigin, // URL Frontend nanti (Next.js)
     methods: ["GET", "POST"]
   }
 });
@@ -35,7 +35,7 @@ io.on('connection', (socket) => {
 
 app.use(cors({
 
-  origin: process.env.CLIENT_URL || "http://localhost:3000", 
+  origin: allowedOrigin, 
   credentials: true
 }));
 
