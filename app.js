@@ -10,10 +10,6 @@ const chatHandler = require('./src/sockets/chatHandler');
 
 const router = require('./src/routes/index');
 
-// Routes
-const authRoutes = require('./src/routes/authRoutes');
-const transactionRoutes = require('./src/routes/transactionRoutes');
-
 const app = express();
 const server = http.createServer(app); 
 const allowedOrigin = process.env.CLIENT_URL || "http://localhost:3000";
