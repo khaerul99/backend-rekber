@@ -1,0 +1,115 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(uuid())
+  username     String
+  email        String        @unique
+  password     String    
+  role         Role          @default(MEMBER)
+
+  bank_name      String?
+  bank_account   String?
+  bank_holder    String?
+
+  pin            String?  // Hashed PIN (6 digit)
+  twofa_secret   String?  // Secret Key dari Google Auth
+  twofa_enabled  Boolean  @default(false) 
+  chats          Chat[]
+  
+  createdAt    DateTime      @default(now())
+
+  // Relasi
+  transactionsAsBuyer  Transaction[] @relation("Buyer")
+  transactionsAsSeller Transaction[] @relation("Seller")
+}
+
+model Transaction {
+  id               String    @id @default(uuid())
+  trx_code         String    @unique 
+  amount           Decimal
+  admin_fee        Decimal
+  total_transfer   Decimal
+  description      String?
+  status           Status    @default(PENDING_PAYMENT)
+  chats            Chat[]
+  proofs  TransactionProof[]
+  auto_complete_at DateTime? // Kunci fitur otomatis 2x24 jam
+  
+  buyerId          String
+  sellerId         String
+  buyer            User      @relation("Buyer", fields: [buyerId], references: [id])
+  seller           User      @relation("Seller", fields: [sellerId], references: [id])
+  
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model Chat {
+  idString       String      @id @default(uuid())
+  message        String      @db.Text
+  is_read        Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+
+  // Relasi (Harus String semua karena UUID)
+  transactionId  String
+  senderId       String
+  
+  transaction    Transaction @relation(fields: [transactionId], references: [id])
+  sender         User        @relation(fields: [senderId], references: [id])
+}
+
+model TransactionProof {
+  id            String      @id @default(uuid())
+  transactionId String
+  type          String      // 'payment_proof' atau 'shipping_proof'
+  imageUrl      String      // Nama file gambar
+  createdAt     DateTime    @default(now())
+
+  // Relasi ke Transaksi
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+}
+
+model AdminBankAccount {
+  id          String   @id @default(uuid())
+  bankName    String
+  bankNumber  String
+  bankHolder  String
+  logoUrl     String?  // URL Logo Bank
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+enum Status {
+  PENDING_PAYMENT
+  VERIFYING       
+  PROCESSED       
+  SENT            
+  COMPLETED 
+  DISBURSED      
+  DISPUTED        
+  CANCELLED
+}
+
+model SystemSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique  
+  value     String   @db.Text 
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
