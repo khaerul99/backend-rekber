@@ -12,4 +12,4 @@ router.post('/login', login);
 router.post('/2fa/setup', protect, generate2FA);
 router.post('/2fa/verify', protect, verify2FA);
 
-module.exports = router;
+module.exports = router; 
