@@ -101,3 +101,39 @@ exports.deleteUser = async (req, res) => {
     });
   }
 };
+
+exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.id;
+
+    // 1. Ambil data user dari DB (termasuk password hash)
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+
+    // 2. Cek Password Lama
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Password lama salah' });
+    }
+
+    // 3. Validasi Password Baru (Opsional: Min 8 karakter)
+    if (newPassword.length < 8) {
+        return res.status(400).json({ message: 'Password baru minimal 8 karakter' });
+    }
+
+    // 4. Hash Password Baru
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // 5. Update ke Database
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword }
+    });
+
+    res.json({ message: 'Password berhasil diubah' });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

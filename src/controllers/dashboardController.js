@@ -107,3 +107,44 @@ exports.getChartData = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.getUserStats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    //  Hitung Total Pengeluaran (Sebagai Pembeli)
+    const totalSpent = await prisma.transaction.aggregate({
+      _sum: { total_transfer: true },
+      where: { 
+        buyerId: userId,
+        status: { not: 'CANCELLED' }
+      }
+    });
+
+    // Hitung Total Pemasukan (Sebagai Penjual)
+    const totalEarned = await prisma.transaction.aggregate({
+      _sum: { amount: true }, // Nominal bersih tanpa fee
+      where: { 
+        sellerId: userId,
+        status: { in: ['COMPLETED', 'DISBURSED'] }
+      }
+    });
+
+    // Hitung Transaksi Aktif (Sedang Berjalan)
+    const activeTransactions = await prisma.transaction.count({
+      where: {
+        OR: [{ buyerId: userId }, { sellerId: userId }],
+        status: { in: ['PENDING_PAYMENT', 'VERIFYING', 'PROCESSED', 'SENT', 'DISPUTED'] }
+      }
+    });
+
+    res.json({
+      totalSpent: totalSpent._sum.total_transfer || 0,
+      totalEarned: totalEarned._sum.amount || 0,
+      activeTransactions
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

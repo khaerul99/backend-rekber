@@ -195,7 +195,7 @@ exports.getTransactionDetail = async (req, res) => {
     if (transaction.buyerId !== userId && transaction.sellerId !== userId && req.user.role !== 'ADMIN') {
       return res.status(403).json({ message: 'Akses ditolak' });
     }
-
+    
     res.json(transaction);
   } catch (error) {
           console.error(error);
@@ -316,6 +316,39 @@ exports.markAsCompleted = async (req, res) => {
   }
 };
 
+// Tandai Sudah Cair + Upload Bukti
+exports.markAsDisbursed = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const file = req.file; 
+
+    if (req.user.role !== 'ADMIN') return res.status(403).json({ message: 'Forbidden' });
+    
+    
+    if (!file) return res.status(400).json({ message: 'Bukti transfer wajib diupload' });
+
+    
+    await prisma.transactionProof.create({
+      data: {
+        transactionId: id,
+        type: 'admin_transfer_proof', 
+        imageUrl: `/uploads/${file.filename}`
+      }
+    });
+
+   
+    await prisma.transaction.update({
+      where: { id },
+      data: { status: 'DISBURSED' }
+    });
+
+    res.json({ message: 'Dana berhasil dicairkan.' });
+  } catch (error) {
+    console.error("Error Disburse:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // PENCAIRAN DANA (Admin Dashboard)
 exports.adminDisburse = async (req, res) => {
   try {
@@ -368,7 +401,7 @@ exports.getVerifyingTransactions = async (req, res) => {
   }
 };
 
-// 2. Menolak Pembayaran (Reject)
+// Menolak Pembayaran (Reject)
 exports.adminRejectPayment = async (req, res) => {
   try {
     const { id } = req.params;
@@ -413,23 +446,6 @@ exports.getReadyToDisburse = async (req, res) => {
   }
 };
 
-// Tandai Sudah Cair
-exports.markAsDisbursed = async (req, res) => {
-  try {
-    const { id } = req.params;
-    if (req.user.role !== 'ADMIN') return res.status(403).json({ message: 'Forbidden' });
-
-    await prisma.transaction.update({
-      where: { id },
-      data: { status: 'DISBURSED' }
-    });
-
-    res.json({ message: 'Dana berhasil ditandai cair.' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
 exports.getDisputedTransactions = async (req, res) => {
   try {
     if (req.user.role !== 'ADMIN') return res.status(403).json({ message: 'Forbidden' });
@@ -449,7 +465,7 @@ exports.getDisputedTransactions = async (req, res) => {
   }
 };
 
-// 2. Putusan Admin (Refund atau Lanjut)
+// Putusan Admin (Refund atau Lanjut)
 exports.resolveDispute = async (req, res) => {
   try {
     const { id } = req.params;
@@ -461,7 +477,7 @@ exports.resolveDispute = async (req, res) => {
     
     if (decision === 'REFUND_BUYER') {
         // Uang dikembalikan ke pembeli -> Transaksi Batal
-        newStatus = 'CANCELLED';
+        newStatus = 'REFUND_PENDING';
     } else if (decision === 'RELEASE_SELLER') {
         // Komplain ditolak, uang diteruskan ke penjual -> Masuk antrian Pencairan
         newStatus = 'COMPLETED';
@@ -475,6 +491,70 @@ exports.resolveDispute = async (req, res) => {
     });
 
     res.json({ message: `Sengketa diselesaikan. Status: ${newStatus}` });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ...
+
+// 3. Ambil Daftar Refund (REFUND_PENDING)
+exports.getRefundQueue = async (req, res) => {
+  try {
+    if (req.user.role !== 'ADMIN') return res.status(403).json({ message: 'Forbidden' });
+
+    const transactions = await prisma.transaction.findMany({
+      where: { status: 'REFUND_PENDING' },
+      include: {
+        // Kita butuh data Pembeli (karena uang balik ke pembeli)
+        buyer: { 
+          select: { 
+            username: true, email: true, 
+            bank_name: true, bank_account: true, bank_holder: true 
+          } 
+        }
+      },
+      orderBy: { updatedAt: 'asc' }
+    });
+
+    res.json(transactions);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// 4. Eksekusi Refund (Tandai REFUNDED + Upload Bukti)
+exports.markAsRefunded = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const file = req.file;
+
+    if (req.user.role !== 'ADMIN') return res.status(403).json({ message: 'Forbidden' });
+    if (!file) return res.status(400).json({ message: 'Bukti refund wajib diupload' });
+
+    await prisma.transactionProof.create({
+      data: {
+        transactionId: id,
+        type: 'admin_refund_proof', // Tipe khusus refund
+        imageUrl: `/uploads/${file.filename}`
+      }
+    });
+
+    await prisma.transaction.update({
+      where: { id },
+      data: { status: 'REFUNDED' }
+    });
+
+    await prisma.chat.create({
+      data: {
+        transactionId: id,
+        senderId: req.user.id,
+        message: '[SISTEM] Dana telah dikembalikan (Refund) ke Pembeli.',
+        is_read: false
+      }
+    });
+
+    res.json({ message: 'Refund berhasil.' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

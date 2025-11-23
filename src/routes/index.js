@@ -18,6 +18,6 @@ router.use('/transactions', transactionRoutes);// URL jadi: /api/transactions/..
 router.use('/settings', settingRoutes)
 router.get('/admin/stats', protect, dashboardController.getAdminStats);
 router.get('/admin/chart', protect, dashboardController.getChartData);
-    // Jika ada
+router.get('/user/stats', protect, dashboardController.getUserStats);
 
 module.exports = router;

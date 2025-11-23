@@ -103,6 +103,10 @@ enum Status {
   DISBURSED      
   DISPUTED        
   CANCELLED
+  RETURN_PROCESS  
+  RETURN_SENT     
+  REFUND_PENDING  
+  REFUNDED
 }
 
 model SystemSetting {

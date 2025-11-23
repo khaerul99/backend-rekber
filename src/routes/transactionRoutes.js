@@ -8,7 +8,6 @@ const {
   getMyTransactions,
   getTransactionDetail,
   adminVerifyPayment,
-  adminDisburse,
   trackTransaction,
   getVerifyingTransactions,
   adminRejectPayment,
@@ -17,7 +16,9 @@ const {
   markAsDisbursed,
   getDisputedTransactions, 
   resolveDispute,
-  createDispute
+  createDispute, 
+  getRefundQueue,
+  markAsRefunded
 } = require("../controllers/transactionController");
 const { protect } = require("../middlewares/authMiddleware");
 const upload = require("../middlewares/uploadMiddleware");
@@ -29,6 +30,7 @@ router.post("/", protect, createTransaction);
 router.get('/admin/all', protect, getAllTransactions);
 router.get("/my-transactions", protect, getMyTransactions);
 
+// ambil detail transaksi
 router.get("/:id", protect, getTransactionDetail);
 
 // Route Upload
@@ -39,24 +41,27 @@ router.patch("/:id/sent", protect, markAsSent);
 router.patch('/:id/complete', protect, markAsCompleted);
 router.patch('/:id/dispute', protect, createDispute);
 
-//
+// verifikasi admin
 router.get("/admin/verifying", protect, getVerifyingTransactions);
 
 // Route Admin (Khusus Validasi)
 router.patch("/:id/verify", protect, adminVerifyPayment);
 router.patch("/:id/reject", protect, adminRejectPayment);
 
-router.patch("/:id/disburse", protect, adminDisburse);
 
 // ROUTE PENCAIRAN
 router.get('/admin/disbursement', protect, getReadyToDisburse);
-router.patch('/:id/disburse', protect, markAsDisbursed);
+router.patch('/:id/disburse', protect, upload.single('image'), markAsDisbursed);
 
 // ROUTE DISPUTE
 router.get('/admin/disputes', protect, getDisputedTransactions);
 router.post('/admin/disputes/:id/resolve', protect, resolveDispute);
 
+// REFUND
+router.get('/admin/refunds', protect, getRefundQueue);
+router.patch('/:id/refund', protect, upload.single('image'), markAsRefunded);
 
+// traking
 router.get("/track/:trx_code", trackTransaction);
 
 
