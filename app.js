@@ -12,12 +12,12 @@ const router = require('./src/routes/index');
 
 const app = express();
 const server = http.createServer(app); 
-const allowedOrigin = process.env.CLIENT_URL || "http://localhost:3000";
+const allowedOrigin = process.env.CLIENT_URL || "*";
 
 // Setup Socket.io
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigin, // URL Frontend nanti (Next.js)
+    origin: allowedOrigin, 
     methods: ["GET", "POST"]
   }
 });
