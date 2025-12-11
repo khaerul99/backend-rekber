@@ -20,7 +20,10 @@ module.exports = (io, socket) => {
           senderId: data.senderId,
           message: data.message,
           is_read: false
-        }
+        },
+        include: {
+        sender: true // <--- PENTING: Ambil data nama pengirim sekalian
+      }
       });
 
       // 2. Kirim ke lawan bicara
