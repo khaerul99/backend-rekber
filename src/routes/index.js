@@ -22,7 +22,7 @@ router.get('/admin/stats', protect, dashboardController.getAdminStats);
 router.get('/admin/chart', protect, dashboardController.getChartData);
 router.get('/user/stats', protect, dashboardController.getUserStats);
 router.use('/reviews', reviewRoutes);
-router.use('/notifications', nofification)
+router.use('/notifications', nofification) 
 
 
 module.exports = router;
