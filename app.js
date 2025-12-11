@@ -18,7 +18,8 @@ const allowedOrigin = process.env.CLIENT_URL || "*";
 const io = new Server(server, {
   cors: {
     origin: allowedOrigin, 
-    methods: ["GET", "POST"]
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
