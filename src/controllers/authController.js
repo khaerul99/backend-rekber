@@ -4,6 +4,10 @@ const bcrypt = require('bcryptjs');
 const { authenticator } = require('otplib'); // Import Library
 const qrcode = require('qrcode');
 const { generateToken } = require('../utils/jwt');
+const crypto = require('crypto'); 
+const sendEmail = require('../utils/sendEmail');
+const { verifyAccountTemplate, resetPasswordTemplate } = require('../utils/emailTemplates');
+require('dotenv').config();
 
 const prisma = new PrismaClient();
 
@@ -119,8 +123,6 @@ exports.generate2FA = async (req, res) => {
   }
 };
 
-// 2. VERIFY: User memasukkan kode 6 digit untuk mengaktifkan
-// src/controllers/authController.js
 
 exports.verify2FA = async (req, res) => {
   try {
@@ -164,8 +166,6 @@ exports.verify2FA = async (req, res) => {
   }
 };
 
-// 3. VALIDATE PIN & 2FA (Middleware/Helper untuk Transaksi Penting)
-// Fungsi ini nanti dipanggil di route pencairan dana / login
 exports.validateSecurity = async (req, res, next) => {
     const { pin, token } = req.body;
     const userId = req.user.id;
@@ -186,4 +186,89 @@ exports.validateSecurity = async (req, res, next) => {
     }
 
     next(); // Lanjut ke fungsi berikutnya (misal: Withdrawal)
+};
+
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      return res.status(404).json({ message: "Email tidak terdaftar" });
+    }
+
+    // 1. Generate Token
+    const resetToken = crypto.randomBytes(20).toString('hex');
+
+    // 2. Simpan ke DB (Expired 1 Jam)
+    await prisma.user.update({
+      where: { email },
+      data: {
+        resetPasswordToken: resetToken,
+        resetPasswordExpires: new Date(Date.now() + 3600000) // 1 jam dari sekarang
+      }
+    });
+
+    // 3. Kirim Email
+    const resetUrl = `${process.env.CLIENT_URL}/auth/reset-password/${resetToken}`;
+    
+  const messageHtml = resetPasswordTemplate(resetUrl);
+
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: 'Reset Password - Rekber App',
+        message: messageHtml,
+      });
+      res.json({ message: "Email terkirim! Cek inbox Anda." });
+    } catch (err) {
+      // Rollback jika gagal kirim
+      await prisma.user.update({
+        where: { email },
+        data: { resetPasswordToken: null, resetPasswordExpires: null }
+      });
+      return res.status(500).json({ message: "Gagal mengirim email" });
+    }
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    // 1. Cari User & Cek Token
+    const user = await prisma.user.findFirst({
+      where: {
+        resetPasswordToken: token,
+        resetPasswordExpires: { gt: new Date() } // Harus belum expired
+      }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Token tidak valid atau sudah kadaluarsa" });
+    }
+
+    // 2. Hash Password Baru
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // 3. Update & Bersihkan Token
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetPasswordToken: null,
+        resetPasswordExpires: null
+      }
+    });
+
+    res.json({ message: "Password berhasil diubah! Silakan login." });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };

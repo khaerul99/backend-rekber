@@ -1,6 +1,7 @@
 // src/controllers/userController.js
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const bcrypt = require('bcryptjs');
 
 // Update Data Bank & Profile
 exports.updateProfile = async (req, res) => {
@@ -133,6 +134,55 @@ exports.changePassword = async (req, res) => {
 
     res.json({ message: 'Password berhasil diubah' });
 
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.setupPin = async (req, res) => {
+  try {
+    const { pin } = req.body;
+    const userId = req.user.id;
+
+    // Validasi: Harus 6 digit angka
+    if (!/^\d{6}$/.test(pin)) {
+      return res.status(400).json({ message: "PIN harus terdiri dari 6 digit angka" });
+    }
+
+    // Hash PIN sebelum disimpan (Biar aman kalau database bocor)
+    const salt = await bcrypt.genSalt(10);
+    const hashedPin = await bcrypt.hash(pin, salt);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { pin: hashedPin }
+    });
+
+    res.json({ message: "PIN Transaksi berhasil diatur" });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.verifyPin = async (req, res) => {
+  try {
+    const { pin } = req.body;
+    const userId = req.user.id;
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+
+    if (!user.pin) {
+      return res.status(400).json({ message: "Anda belum mengatur PIN Transaksi." });
+    }
+
+    // Cek kecocokan PIN
+    const isMatch = await bcrypt.compare(pin, user.pin);
+    if (!isMatch) {
+      return res.status(400).json({ message: "PIN Salah!" });
+    }
+
+    res.json({ message: "PIN Valid", success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

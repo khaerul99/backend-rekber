@@ -20,10 +20,17 @@ model User {
   bank_account   String?
   bank_holder    String?
 
-  pin            String?  // Hashed PIN (6 digit)
-  twofa_secret   String?  // Secret Key dari Google Auth
+  pin            String?  
+  twofa_secret   String?  
   twofa_enabled  Boolean  @default(false) 
   chats          Chat[]
+  notifications  Notification[]
+
+  resetPasswordToken   String?   @unique
+  resetPasswordExpires DateTime?
+
+  givenReviews    Review[] @relation("GivenReviews")
+  receivedReviews Review[] @relation("ReceivedReviews")
   
   createdAt    DateTime      @default(now())
 
@@ -41,8 +48,11 @@ model Transaction {
   description      String?
   status           Status    @default(PENDING_PAYMENT)
   chats            Chat[]
-  proofs  TransactionProof[]
-  auto_complete_at DateTime? // Kunci fitur otomatis 2x24 jam
+  proofs           TransactionProof[]
+  review           Review?
+  resiString    String?
+  
+  auto_complete_at DateTime? 
   
   buyerId          String
   sellerId         String
@@ -59,12 +69,42 @@ model Chat {
   is_read        Boolean     @default(false)
   createdAt      DateTime    @default(now())
 
-  // Relasi (Harus String semua karena UUID)
   transactionId  String
   senderId       String
   
   transaction    Transaction @relation(fields: [transactionId], references: [id])
   sender         User        @relation(fields: [senderId], references: [id])
+}
+
+model Review {
+  id            String      @id @default(uuid())
+  rating        Int         
+  comment       String      @db.Text
+  
+  // Relasi
+  transactionId String      @unique 
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  
+  reviewerId    String      
+  reviewer      User        @relation("GivenReviews", fields: [reviewerId], references: [id])
+  
+  targetId      String      
+  target        User        @relation("ReceivedReviews", fields: [targetId], references: [id])
+
+  createdAt     DateTime    @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   
+  user      User     @relation(fields: [userId], references: [id])
+  
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  link      String?  
+  
+  createdAt DateTime @default(now())
 }
 
 model TransactionProof {
@@ -74,7 +114,8 @@ model TransactionProof {
   imageUrl      String      // Nama file gambar
   createdAt     DateTime    @default(now())
 
-  // Relasi ke Transaksi
+
+ 
   transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 }
 

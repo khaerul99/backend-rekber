@@ -18,7 +18,9 @@ const {
   resolveDispute,
   createDispute, 
   getRefundQueue,
-  markAsRefunded
+  markAsRefunded,
+  buyerReturnGoods, 
+  sellerConfirmReturn
 } = require("../controllers/transactionController");
 const { protect } = require("../middlewares/authMiddleware");
 const upload = require("../middlewares/uploadMiddleware");
@@ -60,6 +62,9 @@ router.post('/admin/disputes/:id/resolve', protect, resolveDispute);
 // REFUND
 router.get('/admin/refunds', protect, getRefundQueue);
 router.patch('/:id/refund', protect, upload.single('image'), markAsRefunded);
+
+router.patch('/:id/return-send', protect, upload.single('image'), buyerReturnGoods);
+router.patch('/:id/return-confirm', protect, sellerConfirmReturn);
 
 // traking
 router.get("/track/:trx_code", trackTransaction);

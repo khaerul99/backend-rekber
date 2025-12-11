@@ -1,6 +1,7 @@
 // src/controllers/transactionController.js
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const notifyUser = require('../utils/notify');
 
 
 // transaction user
@@ -9,7 +10,6 @@ exports.createTransaction = async (req, res) => {
     const { sellerEmail, amount, description } = req.body;
     const buyerId = req.user.id; 
 
-    // 1. Cari Penjual
     const seller = await prisma.user.findUnique({ where: { email: sellerEmail } });
     if (!seller) return res.status(404).json({ message: 'Penjual tidak ditemukan' });
 
@@ -41,6 +41,14 @@ exports.createTransaction = async (req, res) => {
       }
     });
 
+    await notifyUser({
+        userId: seller.id,
+        title: "Pesanan Baru Masuk!",
+        message: `Anda menerima pesanan baru senilai Rp ${amount}. Segera cek!`,
+        link: `/dashboard/transaction/${newTrx.id}`,
+        withEmail: true
+    });
+
     res.status(201).json({ 
       message: 'Transaksi berhasil dibuat', 
       data: newTrx 
@@ -57,12 +65,6 @@ exports.uploadProof = async (req, res) => {
     const { id } = req.params;
     const { type } = req.body;
     const file = req.file;
-
-    // 1. Cek apakah file masuk?
-    console.log("--- DEBUG UPLOAD ---");
-    console.log("ID Transaksi:", id);
-    console.log("Tipe:", type);
-    console.log("File:", file ? file.filename : "KOSONG");
 
     if (!file) return res.status(400).json({ message: 'File tidak ditemukan' });
 
@@ -83,12 +85,25 @@ exports.uploadProof = async (req, res) => {
 
     // 3. Update Status Transaksi
     if (type === 'payment_proof') {
-      await prisma.transaction.update({
+     const trx =  await prisma.transaction.update({
         where: { id: id },
-        data: { status: 'VERIFYING' }
+        data: { status: 'VERIFYING' },
+        select: {trx_code:true}
+      });
+
+      const currentUser = await prisma.user.findUnique({ where: { id: req.user.id } });
+
+
+      await notifyUser({
+          role: 'ADMIN', 
+          title: "Pembayaran Perlu Verifikasi",
+          message: `Ada transaksi baru dari user ${currentUser.username} dengan id ${trx.trx_code} yang menunggu verifikasi pembayaran.`,
+          emailSubject: "🔔 Action Required: Verifikasi Pembayaran Baru"
       });
       console.log("✅ STATUS UPDATED: VERIFYING");
     }
+
+
 
     res.json({ 
       message: 'Bukti berhasil diupload', 
@@ -104,6 +119,7 @@ exports.uploadProof = async (req, res) => {
 // Konfirmasi Kirim Barang (Penjual)
 exports.markAsSent = async (req, res) => {
   const { id } = req.params;
+  const { trackingNumber } = req.body;
   
   // Set waktu otomatis selesai: Sekarang + 48 Jam (2 Hari)
   const autoDate = new Date();
@@ -113,9 +129,31 @@ exports.markAsSent = async (req, res) => {
     where: { id: id },
     data: {
       status: 'SENT',
-      auto_complete_at: autoDate // Set timer
+      auto_complete_at: autoDate, 
+      resiString: trackingNumber
     }
   });
+
+  if (trackingNumber) {
+        await prisma.chat.create({
+            data: {
+                transactionId: id,
+                senderId: req.user.id,
+                message: `[SISTEM] Pesanan dikirim. Info/Resi: ${trackingNumber}`,
+                is_read: false
+            }
+        });
+    }
+
+  const trx = await prisma.transaction.findUnique({ where: { id } });
+
+    await notifyUser({
+        userId: trx.buyerId,
+        title: "Barang Sedang Dikirim",
+        message: "Penjual telah mengirim pesanan. Cek resi di detail transaksi.",
+        link: `/dashboard/transaction/${trx.id}`,
+        withEmail: true
+    });
 
   res.json({ message: 'Status diubah menjadi DIKIRIM. Timer 2x24 jam dimulai.' });
 };
@@ -177,6 +215,7 @@ exports.getTransactionDetail = async (req, res) => {
       include: {
           buyer: { select: { id: true, username: true, email: true } },
         seller: { select: { id: true, username: true, email: true } },
+        
 
         chats: {
           orderBy: { createdAt: 'asc' }, 
@@ -185,7 +224,8 @@ exports.getTransactionDetail = async (req, res) => {
           }
         },
        
-        proofs: true 
+        proofs: true ,
+        review: true
       }
     });
 
@@ -262,6 +302,22 @@ exports.createDispute = async (req, res) => {
       }
     });
 
+     const currentUser = await prisma.user.findUnique({ where: { id: req.user.id } });
+
+    await notifyUser({
+        role: 'ADMIN',
+        title: "Sengketa Baru Diajukan",
+        message: `Pembeli username ${currentUser.username} mengajukan komplain pada transaksi ${transaction.trx_code}. Harap segera cek Pusat Resolusi.`,
+        emailSubject: "🚨 Alert: Sengketa Baru Masuk"
+    });
+
+    await notifyUser({
+        userId: transaction.sellerId, 
+        title: "Sengketa Diajukan Pembeli",
+        message: `Pembeli ${currentUser.username} mengajukan komplain pada transaksi ini ${transaction.trx_code}. Mohon cek detailnya di aplikasi.`,
+        emailSubject: "🚨 Info: Pembeli Mengajukan Komplain"
+    });
+
     res.json({ message: 'Komplain berhasil diajukan. Admin akan segera menengahi.' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -283,8 +339,24 @@ exports.adminVerifyPayment = async (req, res) => {
     const updatedTrx = await prisma.transaction.update({
       where: { id: id },
       data: {
-        status: 'PROCESSED' // Ubah status jadi PROCESSED
+        status: 'PROCESSED' 
       }
+    });
+
+    const trx = await prisma.transaction.findUnique({ where: { id: id } }); 
+    
+    await notifyUser({
+        userId: trx.sellerId,
+        title: "Pembayaran Terverifikasi",
+        message: "Dana sudah aman. Silakan kirim barang sekarang.",
+        emailSubject: "Info: Pembayaran Valid - Segera Kirim Barang"
+    });
+
+    await notifyUser({
+        userId: trx.buyerId,
+        title: "Pembayaran Diterima",
+        message: "Pembayaran Anda valid. Menunggu penjual mengirim barang.",
+        emailSubject: "Info: Pembayaran Berhasil Diverifikasi"
     });
 
     res.json({ message: 'Pembayaran valid. Penjual sekarang bisa kirim barang.', data: updatedTrx });
@@ -308,6 +380,22 @@ exports.markAsCompleted = async (req, res) => {
     await prisma.transaction.update({
       where: { id },
       data: { status: 'COMPLETED' }
+    });
+
+    const currentUser = await prisma.user.findUnique({ where: { id: req.user.id } });
+
+     await notifyUser({
+        userId: transaction.sellerId, 
+        title: "Transaksi Selesai",
+        message: `Pembeli ${currentUser.username} telah menerima barang. Dana akan segera dicairkan Admin.`,
+        emailSubject: "Hore! Barang Sudah Diterima Pembeli"
+    });
+
+    await notifyUser({
+        role: 'ADMIN', 
+        title: "Dana Siap Dicairkan",
+        message: `Transaksi ${transaction.trx_code} selesai. Dana Rp ${Number(transaction.amount).toLocaleString()} siap ditransfer ke Penjual.`,
+        emailSubject: "💰 Action Required: Cairkan Dana Penjual"
     });
 
     res.json({ message: 'Transaksi selesai. Dana siap dicairkan ke penjual.' });
@@ -337,9 +425,20 @@ exports.markAsDisbursed = async (req, res) => {
     });
 
    
-    await prisma.transaction.update({
+
+   
+    const trx = await prisma.transaction.update({
       where: { id },
       data: { status: 'DISBURSED' }
+    });
+
+   
+
+    await notifyUser({
+        userId: trx.sellerId,
+        title: "Dana Telah Dicairkan!",
+        message: "Admin telah mentransfer dana ke rekening Anda. Cek mutasi.",
+        emailSubject: "Info: Pencairan dana selesai"
     });
 
     res.json({ message: 'Dana berhasil dicairkan.' });
@@ -413,6 +512,13 @@ exports.adminRejectPayment = async (req, res) => {
       data: { status: 'PENDING_PAYMENT' }
     });
 
+    await notifyUser({
+        userId: updatedTrx.buyerId,
+        title: "Pembayaran Ditolak",
+        message: "Bukti pembayaran Anda tidak valid. Silakan upload ulang.",
+        emailSubject: "Alert: Pembayaran Ditolak"
+    });
+
     res.json({ message: 'Pembayaran ditolak.', data: updatedTrx });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -465,22 +571,23 @@ exports.getDisputedTransactions = async (req, res) => {
   }
 };
 
-// Putusan Admin (Refund atau Lanjut)
+
 exports.resolveDispute = async (req, res) => {
   try {
     const { id } = req.params;
-    const { decision } = req.body; // 'REFUND_BUYER' atau 'RELEASE_SELLER'
+    const { decision } = req.body; 
 
     if (req.user.role !== 'ADMIN') return res.status(403).json({ message: 'Forbidden' });
 
     let newStatus = '';
     
     if (decision === 'REFUND_BUYER') {
-        // Uang dikembalikan ke pembeli -> Transaksi Batal
         newStatus = 'REFUND_PENDING';
     } else if (decision === 'RELEASE_SELLER') {
-        // Komplain ditolak, uang diteruskan ke penjual -> Masuk antrian Pencairan
         newStatus = 'COMPLETED';
+    } else if (decision === 'RETURN_GOODS') { 
+        newStatus = 'RETURN_PROCESS';
+        message = '[SISTEM] Admin memutuskan: Retur Barang disetujui. Pembeli harap segera kirim balik barang.';
     } else {
         return res.status(400).json({ message: 'Keputusan tidak valid' });
     }
@@ -488,6 +595,15 @@ exports.resolveDispute = async (req, res) => {
     await prisma.transaction.update({
       where: { id },
       data: { status: newStatus }
+    });
+
+    await prisma.chat.create({
+        data: {
+          transactionId: id,
+          senderId: req.user.id,
+          message: message,
+          is_read: false
+        }
     });
 
     res.json({ message: `Sengketa diselesaikan. Status: ${newStatus}` });
@@ -558,4 +674,78 @@ exports.markAsRefunded = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+};
+
+
+exports.buyerReturnGoods = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { description } = req.body; 
+        const file = req.file; 
+
+
+        if (file) {
+            await prisma.transactionProof.create({
+                data: {
+                    transactionId: id,
+                    type: 'return_shipping_proof',
+                    imageUrl: `/uploads/${file.filename}`
+                }
+            });
+        }
+
+      
+        await prisma.transaction.update({
+            where: { id },
+            data: { status: 'RETURN_SENT' } 
+        });
+
+        await prisma.chat.create({
+            data: {
+              transactionId: id,
+              senderId: req.user.id,
+              message: `[SISTEM] Barang telah dikirim balik. Ket: ${description}`,
+              is_read: false
+            }
+        });
+
+        res.json({ message: 'Status diupdate: Barang dikirim balik.' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.sellerConfirmReturn = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+
+        const trx = await prisma.transaction.findUnique({ where: { id } });
+        if (trx.sellerId !== userId) return res.status(403).json({ message: "Akses ditolak" });
+
+        await prisma.transaction.update({
+            where: { id },
+            data: { status: 'REFUND_PENDING' }
+        });
+
+        await prisma.chat.create({
+            data: {
+              transactionId: id,
+              senderId: userId,
+              message: '[SISTEM] Penjual telah menerima barang retur. Dana siap dikembalikan ke Pembeli.',
+              is_read: false
+            }
+        });
+
+        await notifyUser({
+        role: 'ADMIN',
+        title: "Barang Retur Diterima",
+        message: `Penjual telah menerima barang retur (${id}). Segera proses Refund ke Pembeli.`,
+        emailSubject: "💸 Info: Refund Siap Diproses"
+    });
+
+        res.json({ message: 'Konfirmasi berhasil. Menunggu Admin refund dana.' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 };
