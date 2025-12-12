@@ -1,14 +1,15 @@
 const nodemailer = require('nodemailer');
 
 const sendEmail = async (options) => {
-  // Buat transporter
 const transporter = nodemailer.createTransport({
-    service: 'gmail', // Otomatis mengatur Host=smtp.gmail.com dan Port=465
+    host: process.env.EMAIL_HOST, // Host khusus Brevo
+    port: 587, // Port standar Brevo
+    secure: false, // Wajib false untuk port 587
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
+      user: process.env.EMAIL_USER, // Email login Brevo kamu
+      pass: process.env.EMAIL_PASS  // Password SMTP dari Langkah 1
     }
-  });
+  })
 
   const mailOptions = {
     from: `"Rekber App" <${process.env.EMAIL_USER}>`, 
