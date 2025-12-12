@@ -1,11 +1,11 @@
 const nodemailer = require('nodemailer');
 
 const sendEmail = async (options) => {
-  // 1. Konfigurasi Transporter (Zoho)
+  
   const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST, // smtp.zoho.com
-    port: process.env.EMAIL_PORT, // 465
-    secure: true, // true untuk port 465 (SSL)
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT, 
+    secure: true, 
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS
@@ -15,7 +15,7 @@ const sendEmail = async (options) => {
   // 2. Opsi Email
   const mailOptions = {
     from: `"Rekber App Support" <${process.env.EMAIL_USER}>`, 
-    to: options.email, // Penerima
+    to: options.email, 
     subject: options.subject,
     html: options.message 
   };

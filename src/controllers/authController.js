@@ -222,6 +222,7 @@ exports.forgotPassword = async (req, res) => {
       });
       res.json({ message: "Email terkirim! Cek inbox Anda." });
     } catch (err) {
+      console.error("❌ DETAIL ERROR EMAIL:", err); // <--- TAMBAHKAN INI
       // Rollback jika gagal kirim
       await prisma.user.update({
         where: { email },
