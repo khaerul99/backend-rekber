@@ -1,28 +1,28 @@
-const { Resend } = require('resend');
-
-// Inisialisasi Resend dengan API Key dari Environment Variable
-const resend = new Resend(process.env.RESEND_API_KEY);
+const nodemailer = require('nodemailer');
 
 const sendEmail = async (options) => {
-  try {
-    // Kirim email menggunakan API Resend
-    const data = await resend.emails.send({
-      // PENTING: Jika belum punya domain sendiri di Resend,
-      // WAJIB pakai 'onboarding@resend.dev' sebagai pengirim.
-      from: 'Rekber App <onboarding@resend.dev>', 
-      
-      // Ke siapa email dikirim
-      to: options.email, 
-      
-      subject: options.subject,
-      html: options.message
-    });
+  // Buat transporter
+  const transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST, // smtp.zoho.com
+    port: Number(process.env.EMAIL_PORT), // Pastikan jadi angka
+    secure: process.env.EMAIL_PORT == 465, // True jika 465, False jika 587
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
+    },
+    // Tambahan logger untuk cek error di Railway
+    logger: true,
+    debug: true
+  });
 
-    console.log("✅ Email Terkirim via Resend:", data);
-  } catch (error) {
-    console.error("❌ Gagal Kirim Email via Resend:", error);
-    throw error; // Lempar error agar ditangkap oleh controller
-  }
+  const mailOptions = {
+    from: `"Rekber App" <${process.env.EMAIL_USER}>`, 
+    to: options.email, 
+    subject: options.subject,
+    html: options.message 
+  };
+
+  await transporter.sendMail(mailOptions);
 };
 
 module.exports = sendEmail;
