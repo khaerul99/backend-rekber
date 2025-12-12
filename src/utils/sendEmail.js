@@ -2,12 +2,16 @@ const nodemailer = require('nodemailer');
 
 const sendEmail = async (options) => {
   
- const transporter = nodemailer.createTransport({
-    service: 'gmail', 
+  const transporter = nodemailer.createTransport({
+    host: "smtp.zoho.com",  // Langsung tulis string
+    port: 587,              // Langsung tulis angka
+    secure: false,          // WAJIB False untuk port 587
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    }
+      user: "skuyevent@zohomail.com", 
+      pass: "Khaerul2312" 
+    },
+    logger: true,
+    debug: true
   });
 
   // 2. Opsi Email
