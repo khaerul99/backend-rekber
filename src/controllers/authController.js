@@ -228,7 +228,7 @@ exports.forgotPassword = async (req, res) => {
         where: { email },
         data: { resetPasswordToken: null, resetPasswordExpires: null }
       });
-      return res.status(500).json({ message: "Gagal mengirim email" });
+      return res.status(500).json({ message: "Gagal mengirim email", error: err.message });
     }
 
   } catch (error) {
