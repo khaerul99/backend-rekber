@@ -8,7 +8,7 @@ const sendEmail = async (options) => {
     secure: false,          // WAJIB False untuk port 587
     auth: {
       user: "62-8953018517112@zohomail.com", 
-      pass: "Khaerul2312" 
+      pass: "9tcMTc01KA2z" 
     },
     logger: true,
     debug: true
