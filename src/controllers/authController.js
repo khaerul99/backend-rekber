@@ -279,6 +279,7 @@ exports.forgotPassword = async (req, res) => {
 
 exports.resetPassword = async (req, res) => {
   try {
+    console.log("Data diterima Backend:", req.body);
     const { token } = req.params;
     const { password, confirmPassword } = req.body;
    
