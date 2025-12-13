@@ -12,12 +12,15 @@ const router = require('./src/routes/index');
 
 const app = express();
 const server = http.createServer(app); 
-const allowedOrigin = process.env.CLIENT_URL || "*";
+const allowedOrigins = [
+  "http://localhost:3000",             // Laptop (Frontend Dev)
+  process.env.CLIENT_URL               // Vercel (Production)
+];
 
 // Setup Socket.io
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigin, 
+    origin: allowedOrigins, 
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -31,9 +34,8 @@ io.on('connection', (socket) => {
 });
 
 app.use(cors({
-
-  origin: allowedOrigin, 
-  credentials: true
+  origin: allowedOrigins, 
+  credentials: true,
 }));
 
 app.use(express.json());

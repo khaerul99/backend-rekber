@@ -74,7 +74,7 @@ exports.uploadProof = async (req, res) => {
         data: {
           transactionId: id,
           type: type,
-          imageUrl: `/uploads/${file.filename}`
+          imageUrl: file.path
         }
       });
     } catch (dbError) {
@@ -104,7 +104,7 @@ exports.uploadProof = async (req, res) => {
 
     res.json({ 
       message: 'Bukti berhasil diupload', 
-      filePath: `/uploads/${file.filename}` 
+      filePath: file.path
     });
 
   } catch (error) {

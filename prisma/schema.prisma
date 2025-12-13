@@ -26,6 +26,10 @@ model User {
   chats          Chat[]
   notifications  Notification[]
 
+  // VERIFIKASI
+  isVerified        Boolean  @default(false)
+  verificationToken String?  
+
   resetPasswordToken   String?   @unique
   resetPasswordExpires DateTime?
 

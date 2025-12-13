@@ -48,15 +48,15 @@ exports.transactionNotificationTemplate = (title, message, link) => {
 };
 
 // 2. Template Verifikasi Email (Register)
-exports.verifyAccountTemplate = (username, url) => {
+exports.verifyAccountTemplate = (username, verifyUrl) => {
   const content = `
     <h2>Halo, ${username}! 👋</h2>
     <p>Terima kasih telah mendaftar di Rekber App. Untuk mulai bertransaksi dengan aman, mohon verifikasi alamat email Anda.</p>
     <div class="button-container">
-      <a href="${url}" class="button">Verifikasi Akun Saya</a>
+      <a href="${verifyUrl}" class="button" style="word-break: break-all; color: #ffffff;">Verifikasi Akun Saya</a>
     </div>
     <p>Jika tombol di atas tidak berfungsi, salin dan tempel link berikut ke browser Anda:</p>
-    <p style="word-break: break-all; color: #2563eb;">${url}</p>
+    <p style="word-break: break-all; color: #2563eb;">${verifyUrl}</p>
     <p>Link ini berlaku selama 24 jam.</p>
   `;
   return baseTemplate(content);
