@@ -278,10 +278,17 @@ exports.forgotPassword = async (req, res) => {
 };
 
 exports.resetPassword = async (req, res) => {
-  try {
     const { token } = req.params;
     const { password, confirmPassword } = req.body;
 
+
+   if (password !== confirmPassword) {
+      return res.status(400).json({ message: "Password dan Konfirmasi Password tidak cocok!" });
+    }
+
+
+  try {
+   
     // 1. Cari User & Cek Token
     const user = await prisma.user.findFirst({
       where: {
@@ -294,9 +301,6 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ message: "Token tidak valid atau sudah kadaluarsa" });
     }
 
-    if (password !== confirmPassword) {
-      return res.status(400).json({ message: "Password dan Konfirmasi Password tidak cocok!" });
-    }
 
     // 2. Hash Password Baru
     const salt = await bcrypt.genSalt(10);
