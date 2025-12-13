@@ -77,9 +77,7 @@ exports.uploadProof = async (req, res) => {
           imageUrl: `/uploads/${file.filename}`
         }
       });
-      console.log("✅ SUKSES SIMPAN PROOF:", savedProof);
     } catch (dbError) {
-      console.error("❌ GAGAL SIMPAN PROOF KE DB:", dbError);
       return res.status(500).json({ error: "Gagal menyimpan ke database: " + dbError.message });
     }
 
@@ -100,7 +98,6 @@ exports.uploadProof = async (req, res) => {
           message: `Ada transaksi baru dari user ${currentUser.username} dengan id ${trx.trx_code} yang menunggu verifikasi pembayaran.`,
           emailSubject: "🔔 Action Required: Verifikasi Pembayaran Baru"
       });
-      console.log("✅ STATUS UPDATED: VERIFYING");
     }
 
 
@@ -111,7 +108,6 @@ exports.uploadProof = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("ERROR UTAMA:", error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -238,7 +234,6 @@ exports.getTransactionDetail = async (req, res) => {
     
     res.json(transaction);
   } catch (error) {
-          console.error(error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -443,7 +438,6 @@ exports.markAsDisbursed = async (req, res) => {
 
     res.json({ message: 'Dana berhasil dicairkan.' });
   } catch (error) {
-    console.error("Error Disburse:", error);
     res.status(500).json({ error: error.message });
   }
 };

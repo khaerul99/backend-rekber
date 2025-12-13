@@ -40,7 +40,6 @@ exports.createReview = async (req, res) => {
 
     res.json({ message: "Ulasan berhasil dikirim", data: review });
   } catch (error) {
-    console.error("Error Review:", error); // Cek terminal untuk lihat error aslinya
     res.status(500).json({ error: error.message });
   }
 };

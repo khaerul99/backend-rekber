@@ -58,11 +58,9 @@ const sendEmail = async (options) => {
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("❌ Brevo API Error Detail:", errorData);
       throw new Error(`Gagal kirim email via Brevo API: ${JSON.stringify(errorData)}`);
     }
 
-    console.log("✅ Email Berhasil Terkirim via Brevo API!");
 
   } catch (error) {
     console.error("❌ Error System:", error);

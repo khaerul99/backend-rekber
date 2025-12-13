@@ -132,24 +132,15 @@ exports.verify2FA = async (req, res) => {
   try {
     const userId = req.user.id;
     const { token } = req.body;
-
-    console.log("--- DEBUG 2FA START ---");
-    console.log("1. User ID:", userId);
-    console.log("2. Token Input:", token);
-
-    // Cari User
+    
     const user = await prisma.user.findUnique({ where: { id: userId } });
     
     if (!user) {
-        console.log("User tidak ditemukan di DB");
         return res.status(404).json({ message: "User not found" });
     }
 
-    console.log("3. Secret di DB:", user.twofa_secret);
-
     // Validasi
     const isValid = authenticator.check(token, user.twofa_secret);
-    console.log("4. Hasil Cek:", isValid ? "COCOK" : "TIDAK COCOK");
 
     if (!isValid) {
       return res.status(400).json({ message: 'Kode OTP salah/kadaluarsa' });
@@ -161,11 +152,9 @@ exports.verify2FA = async (req, res) => {
       data: { twofa_enabled: true }
     });
 
-    console.log("5. Sukses Update DB");
     res.json({ message: '2FA Berhasil Diaktifkan!' });
 
   } catch (error) {
-    console.error("ERROR DI VERIFY 2FA:", error); // Cek terminal VS Code kalau error 500
     res.status(500).json({ error: error.message });
   }
 };
@@ -226,9 +215,7 @@ exports.forgotPassword = async (req, res) => {
       });
       res.json({ message: "Email terkirim! Cek inbox Anda." });
     } catch (err) {
-      console.error("❌ DETAIL ERROR EMAIL:", err); 
       
-      // Rollback jika gagal kirim
       await prisma.user.update({
         where: { email },
         data: { resetPasswordToken: null, resetPasswordExpires: null }

@@ -7,7 +7,6 @@ module.exports = (io, socket) => {
   // Logika Join Room
   socket.on('join_transaction', (transactionId) => {
     socket.join(transactionId);
-    console.log(`User ${socket.id} joined room: ${transactionId}`);
   });
 
   // Logika Kirim Pesan

@@ -2,7 +2,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-const checkAutoCompletion = async () => {
+const checkAutoCompletion = async (req, res) => {
   try {
     const now = new Date();
 
@@ -26,13 +26,13 @@ const checkAutoCompletion = async () => {
             updatedAt: now,
           },
         });
-        console.log(`[AUTO-COMPLETE] Transaction ${trx.trx_code} marked as COMPLETED.`);
         
         // TODO: Tambahkan logika untuk menambah saldo ke dompet penjual di sini
       }
     }
   } catch (error) {
-    console.error('Error in Cron Job:', error);
+    res.status(500).json({ error: error.message });
+    
   }
 };
 
