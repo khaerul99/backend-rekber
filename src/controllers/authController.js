@@ -279,7 +279,6 @@ exports.forgotPassword = async (req, res) => {
 
 exports.resetPassword = async (req, res) => {
   try {
-    console.log("Data diterima Backend:", req.body);
     const { token } = req.params;
     const { password, confirmPassword } = req.body;
    
@@ -313,7 +312,7 @@ exports.resetPassword = async (req, res) => {
 
     // 2. Hash Password Baru
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+   const hashedPassword = await bcrypt.hash(password, salt);
 
     // 3. Update & Bersihkan Token
     await prisma.user.update({
