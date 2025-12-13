@@ -14,7 +14,7 @@ const prisma = new PrismaClient();
 // REGISTER
 exports.register = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, confirmPassword } = req.body;
 
     // --- 1. VALIDASI PASSWORD (LOGIKA BARU) ---
     const hasUpperCase = /[A-Z]/.test(password);
@@ -25,6 +25,10 @@ exports.register = async (req, res) => {
       return res.status(400).json({ 
         message: 'Password harus minimal 8 karakter, memiliki 1 huruf besar, dan 1 karakter unik (simbol).' 
       });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ message: "Password dan Konfirmasi Password tidak cocok!" });
     }
 
     const userExists = await prisma.user.findUnique({ where: { email } });
@@ -240,7 +244,7 @@ exports.forgotPassword = async (req, res) => {
 exports.resetPassword = async (req, res) => {
   try {
     const { token } = req.params;
-    const { password } = req.body;
+    const { password, confirmPassword } = req.body;
 
     // 1. Cari User & Cek Token
     const user = await prisma.user.findFirst({
@@ -252,6 +256,10 @@ exports.resetPassword = async (req, res) => {
 
     if (!user) {
       return res.status(400).json({ message: "Token tidak valid atau sudah kadaluarsa" });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ message: "Password dan Konfirmasi Password tidak cocok!" });
     }
 
     // 2. Hash Password Baru
