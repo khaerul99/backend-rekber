@@ -48,7 +48,7 @@ exports.register = async (req, res) => {
       },
     });
 
-    const verifyUrl = `http://localhost:3000/auth/verify-email?token=${verificationToken}`;
+    const verifyUrl = `${process.env.CLIENT_URL}/auth/verify-email?token=${verificationToken}`;
 
     const message = verifyAccountTemplate(username, verifyUrl); 
 
