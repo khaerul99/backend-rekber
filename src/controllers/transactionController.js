@@ -13,19 +13,21 @@ exports.createTransaction = async (req, res) => {
     const seller = await prisma.user.findUnique({ where: { email: sellerEmail } });
     if (!seller) return res.status(404).json({ message: 'Penjual tidak ditemukan' });
 
-    let adminFee = 5000; 
+   let feePercent = 0.5;
     
     const feeSetting = await prisma.systemSetting.findUnique({
         where: { key: 'admin_fee' }
     });
 
     if (feeSetting) {
-        adminFee = parseFloat(feeSetting.value);
+        feePercent = parseFloat(feeSetting.value);
     }
 
+    const amountVal = parseFloat(amount);
+    let calculatedFee = (amountVal * feePercent) / 100;
     
 
-    const totalTransfer = parseFloat(amount) + adminFee;
+    const totalTransfer = parseFloat(amount) + calculatedFee;
     const trxCode = `TRX-${Date.now()}`; 
 
     const newTrx = await prisma.transaction.create({
@@ -605,8 +607,6 @@ exports.resolveDispute = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
-// ...
 
 // 3. Ambil Daftar Refund (REFUND_PENDING)
 exports.getRefundQueue = async (req, res) => {
