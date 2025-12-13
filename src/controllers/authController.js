@@ -247,7 +247,7 @@ exports.forgotPassword = async (req, res) => {
       where: { email },
       data: {
         resetPasswordToken: resetToken,
-        resetPasswordExpires: new Date(Date.now() + 3600000) // 1 jam dari sekarang
+        resetPasswordExpires: new Date(Date.now() + 24 * 60 * 60 * 1000) 
       }
     });
 
@@ -278,22 +278,30 @@ exports.forgotPassword = async (req, res) => {
 };
 
 exports.resetPassword = async (req, res) => {
+  try {
     const { token } = req.params;
     const { password, confirmPassword } = req.body;
-
-
-   if (password !== confirmPassword) {
+   
+     if (password !== confirmPassword) {
       return res.status(400).json({ message: "Password dan Konfirmasi Password tidak cocok!" });
     }
 
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+    const isLongEnough = password.length >= 8;
 
-  try {
-   
+    if (!isLongEnough || !hasUpperCase || !hasSpecialChar) {
+      return res.status(400).json({ 
+        message: 'Password baru harus minimal 8 karakter, memiliki 1 huruf besar, dan 1 simbol.' 
+      });
+    }
+
+
     // 1. Cari User & Cek Token
     const user = await prisma.user.findFirst({
       where: {
         resetPasswordToken: token,
-        resetPasswordExpires: { gt: new Date() } // Harus belum expired
+        resetPasswordExpires: { gt: new Date() } 
       }
     });
 
