@@ -11,6 +11,7 @@ exports.createTransaction = async (req, res) => {
     const buyerId = req.user.id; 
 
     const seller = await prisma.user.findUnique({ where: { email: sellerEmail } });
+
     if (!seller) return res.status(404).json({ message: 'Penjual tidak ditemukan' });
 
    let feePercent = 0.5;
@@ -34,7 +35,7 @@ exports.createTransaction = async (req, res) => {
       data: {
         trx_code: trxCode,
         amount: amount,
-        admin_fee: adminFee,
+        admin_fee: calculatedFee,
         description:description,
         total_transfer: totalTransfer,
         buyerId: buyerId,
