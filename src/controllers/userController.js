@@ -141,15 +141,27 @@ exports.changePassword = async (req, res) => {
 
 exports.setupPin = async (req, res) => {
   try {
-    const { pin } = req.body;
+    const { pin, password } = req.body; // 👇 Kita butuh password & pin baru
     const userId = req.user.id;
 
-    // Validasi: Harus 6 digit angka
-    if (!/^\d{6}$/.test(pin)) {
-      return res.status(400).json({ message: "PIN harus terdiri dari 6 digit angka" });
+    // 1. Validasi
+    if (!pin || pin.length !== 6) {
+      return res.status(400).json({ message: "PIN harus 6 digit angka" });
+    }
+    if (!password) {
+      return res.status(400).json({ message: "Password wajib diisi demi keamanan" });
     }
 
-    // Hash PIN sebelum disimpan (Biar aman kalau database bocor)
+    // 2. Ambil User untuk cek password
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    
+    // 3. Cek apakah password login benar?
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Password salah! Gagal menyimpan PIN." });
+    }
+
+    // 4. Hash PIN Baru & Simpan
     const salt = await bcrypt.genSalt(10);
     const hashedPin = await bcrypt.hash(pin, salt);
 
@@ -158,10 +170,10 @@ exports.setupPin = async (req, res) => {
       data: { pin: hashedPin }
     });
 
-    res.json({ message: "PIN Transaksi berhasil diatur" });
+    res.json({ message: "PIN Transaksi berhasil disimpan!" });
 
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
