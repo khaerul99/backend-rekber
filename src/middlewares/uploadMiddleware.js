@@ -34,27 +34,21 @@
 // module.exports = upload;
 
 
-const cloudinary = require('cloudinary').v2;
+const cloudinary = require('../utils/cloudinary');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
-require('dotenv').config(); // PENTING: Untuk baca .env
+require('dotenv').config(); 
 
-// 1. Konfigurasi Cloudinary (Baca dari .env)
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
 
-// 2. Konfigurasi Penyimpanan (Storage)
+
+
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: 'rekber-proofs',       // Nama folder nanti di dashboard Cloudinary
-    allowed_formats: ['jpg', 'png', 'jpeg'], // Filter hanya gambar
+    folder: 'rekber-proofs',       
+    allowed_formats: ['jpg', 'png', 'jpeg'],
     public_id: (req, file) => {
-      // Opsional: Custom nama file. Kalau dihapus, Cloudinary kasih nama acak.
-      // Format: PROOF-[timestamp]
+
       return `PROOF-${Date.now()}`; 
     }
   },

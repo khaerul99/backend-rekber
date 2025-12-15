@@ -7,20 +7,33 @@ const bcrypt = require('bcryptjs');
 exports.updateProfile = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { bank_name, bank_account, bank_holder } = req.body;
+    const { bank_name, bank_account, bank_holder, pin } = req.body;
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (pin) {
+        const isMatch = await bcrypt.compare(pin, user.pin);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'PIN Salah! Perubahan ditolak.' });
+        }
+    } else {
+        // Opsional: Tolak jika tidak mengirim PIN
+        return res.status(400).json({ message: 'Masukkan PIN untuk menyimpan perubahan.' });
+    }
 
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: {
-        bank_name,     // Contoh: "BCA"
-        bank_account,  // Contoh: "1234567890"
-        bank_holder    // Contoh: "Ahmad Rivaldi"
+        bank_name,     
+        bank_account,  
+        bank_holder    
       }
     });
 
     res.json({ message: 'Data rekening berhasil disimpan', user: updatedUser });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.log(error);
+    
+    res.status(500).json({ message: error.message });
   }
 };
 

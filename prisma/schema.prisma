@@ -152,6 +152,7 @@ enum Status {
   RETURN_SENT     
   REFUND_PENDING  
   REFUNDED
+  WAITING_REPLACEMENT
 }
 
 model SystemSetting {
