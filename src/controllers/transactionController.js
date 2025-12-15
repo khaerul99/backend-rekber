@@ -1,6 +1,7 @@
 // src/controllers/transactionController.js
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const bcrypt = require('bcryptjs');
 const notifyUser = require('../utils/notify');
 
 
@@ -412,10 +413,23 @@ exports.markAsDisbursed = async (req, res) => {
     const { id } = req.params;
     const file = req.file; 
     const cloudinaryUrl = req.file.path;
+    const { pin } = req.body;
+
+    console.log("Body diterima:", req.body);
 
     if (req.user.role !== 'ADMIN') return res.status(403).json({ message: 'Forbidden' });
+   
+    const admin = await prisma.user.findUnique({ where: { id: req.user.id } });
     
+    if (!pin) return res.status(400).json({ message: 'Masukkan PIN Admin untuk konfirmasi.' });
     
+    const isMatch = await bcrypt.compare(pin, admin.pin);
+    if (!isMatch) {
+      await cloudinary.uploader.destroy(file.filename);
+      return res.status(400).json({ message: 'PIN Salah! Pencairan ditolak.' });
+    }
+      
+
     if (!file) return res.status(400).json({ message: 'Bukti transfer wajib diupload' });
 
     
@@ -647,8 +661,16 @@ exports.markAsRefunded = async (req, res) => {
   try {
     const { id } = req.params;
     const file = req.file;
+    const { pin } = req.body;
 
     if (req.user.role !== 'ADMIN') return res.status(403).json({ message: 'Forbidden' });
+
+    const admin = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!pin || !(await bcrypt.compare(pin, admin.pin))) {
+        await cloudinary.uploader.destroy(file.filename);
+        return res.status(400).json({ message: 'PIN Salah! Refund ditolak.' });
+    }
+
     if (!file) return res.status(400).json({ message: 'Bukti refund wajib diupload' });
 
     await prisma.transactionProof.create({
@@ -729,14 +751,14 @@ exports.sellerConfirmReturn = async (req, res) => {
 
         await prisma.transaction.update({
             where: { id },
-            data: { status: 'REFUND_PENDING' }
+            data: { status: 'WAITING_REPLACEMENT' }
         });
 
         await prisma.chat.create({
             data: {
               transactionId: id,
               senderId: userId,
-              message: '[SISTEM] Penjual telah menerima barang retur. Dana siap dikembalikan ke Pembeli.',
+              message: '[SISTEM] Penjual menerima barang retur & sedang menyiapkan barang pengganti.',
               is_read: false
             }
         });
