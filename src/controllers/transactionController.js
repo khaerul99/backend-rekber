@@ -71,16 +71,19 @@ exports.uploadProof = async (req, res) => {
 
     if (!file) return res.status(400).json({ message: 'File tidak ditemukan' });
 
-    // 2. SIMPAN KE DATABASE (Ini yang tadi gagal)
+    const cloudinaryUrl = req.file.path;
+
     try {
-      const savedProof = await prisma.transactionProof.create({
+      await prisma.transactionProof.create({
         data: {
           transactionId: id,
           type: type,
-          imageUrl: file.path
+          imageUrl: cloudinaryUrl
         }
       });
+
     } catch (dbError) {
+      
       return res.status(500).json({ error: "Gagal menyimpan ke database: " + dbError.message });
     }
 
@@ -107,7 +110,7 @@ exports.uploadProof = async (req, res) => {
 
     res.json({ 
       message: 'Bukti berhasil diupload', 
-      filePath: file.path
+      filePath: cloudinaryUrl
     });
 
   } catch (error) {
@@ -404,9 +407,11 @@ exports.markAsCompleted = async (req, res) => {
 
 // Tandai Sudah Cair + Upload Bukti
 exports.markAsDisbursed = async (req, res) => {
+  
   try {
     const { id } = req.params;
     const file = req.file; 
+    const cloudinaryUrl = req.file.path;
 
     if (req.user.role !== 'ADMIN') return res.status(403).json({ message: 'Forbidden' });
     
@@ -414,11 +419,12 @@ exports.markAsDisbursed = async (req, res) => {
     if (!file) return res.status(400).json({ message: 'Bukti transfer wajib diupload' });
 
     
+
     await prisma.transactionProof.create({
       data: {
         transactionId: id,
         type: 'admin_transfer_proof', 
-        imageUrl: `/uploads/${file.filename}`
+        imageUrl: cloudinaryUrl
       }
     });
 
@@ -580,8 +586,10 @@ exports.resolveDispute = async (req, res) => {
     
     if (decision === 'REFUND_BUYER') {
         newStatus = 'REFUND_PENDING';
+        message = '[SISTEM] Admin memutuskan: Dana dikembalikan ke Pembeli (Refund).';
     } else if (decision === 'RELEASE_SELLER') {
         newStatus = 'COMPLETED';
+        message = '[SISTEM] Admin memutuskan: Komplain ditolak. Dana diteruskan ke Penjual.';
     } else if (decision === 'RETURN_GOODS') { 
         newStatus = 'RETURN_PROCESS';
         message = '[SISTEM] Admin memutuskan: Retur Barang disetujui. Pembeli harap segera kirim balik barang.';
@@ -678,13 +686,14 @@ exports.buyerReturnGoods = async (req, res) => {
         const { description } = req.body; 
         const file = req.file; 
 
+        const  cloudinaryUrl = req.file.path;
 
         if (file) {
             await prisma.transactionProof.create({
                 data: {
                     transactionId: id,
                     type: 'return_shipping_proof',
-                    imageUrl: `/uploads/${file.filename}`
+                    imageUrl: cloudinaryUrl
                 }
             });
         }
