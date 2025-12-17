@@ -4,19 +4,13 @@ const jwt = require('jsonwebtoken');
 const protect = (req, res, next) => {
   let token;
 
-  // Cek header Authorization: "Bearer blablabla"
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
-      // Ambil tokennya saja (buang kata "Bearer ")
       token = req.headers.authorization.split(' ')[1];
-
-      // Verifikasi token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+     req.user = decoded; 
       
-      // Simpan data user ke request agar bisa dipakai di controller
-      req.user = decoded; 
-      
-      next(); // Lanjut ke controller
+      next(); 
     } catch (error) {
       res.status(401).json({ message: 'Not authorized, token failed' });
     }
@@ -25,4 +19,13 @@ const protect = (req, res, next) => {
   }
 };
 
-module.exports = { protect };
+const admin = (req, res, next) => {
+  
+  if (req.user && req.user.role === 'ADMIN') {
+    next(); 
+  } else {
+    res.status(403).json({ message: 'Akses ditolak! Khusus Admin.' });
+  }
+};
+
+module.exports = { protect, admin };
