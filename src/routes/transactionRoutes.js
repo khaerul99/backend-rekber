@@ -22,14 +22,14 @@ const {
   buyerReturnGoods, 
   sellerConfirmReturn
 } = require("../controllers/transactionController");
-const { protect } = require("../middlewares/authMiddleware");
+const { protect, admin } = require("../middlewares/authMiddleware");
 const upload = require("../middlewares/uploadMiddleware");
 
 const router = express.Router();
 
 // Route User
 router.post("/", protect, createTransaction);
-router.get('/admin/all', protect, getAllTransactions);
+router.get('/all', protect, admin, getAllTransactions);
 router.get("/my-transactions", protect, getMyTransactions);
 
 // ambil detail transaksi
