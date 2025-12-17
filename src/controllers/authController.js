@@ -149,26 +149,22 @@ exports.generate2FA = async (req, res) => {
     const userId = req.user.id;
     const user = await prisma.user.findUnique({ where: { id: userId } });
 
-    // Buat secret key unik untuk user ini
     const secret = authenticator.generateSecret();
 
-    // Simpan secret ke DB (tapi set enabled = false dulu)
     await prisma.user.update({
       where: { id: userId },
       data: { twofa_secret: secret }
     });
 
-    // Buat format URL otpauth (agar bisa dibaca Google Authenticator)
-    // Format: otpauth://totp/NamaApp:EmailUser?secret=...&issuer=NamaApp
+    
     const otpauth = authenticator.keyuri(user.email, 'RekberApp', secret);
 
-    // Generate QR Code gambar (Data URL)
     const imageUrl = await qrcode.toDataURL(otpauth);
 
     res.json({
       message: 'Scan QR Code ini di aplikasi Google Authenticator',
-      qrCode: imageUrl, // Frontend akan menampilkan ini sebagai gambar <img src="..." />
-      secret: secret    // Opsional: tampilkan text jika kamera user rusak
+      qrCode: imageUrl, 
+      secret: secret    
     });
 
   } catch (error) {
