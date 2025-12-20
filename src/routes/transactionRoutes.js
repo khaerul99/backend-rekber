@@ -28,7 +28,7 @@ const upload = require("../middlewares/uploadMiddleware");
 const router = express.Router();
 
 // Route User
-router.post("/", protect, createTransaction);
+router.post("/create-transaction", protect, createTransaction);
 router.get('/all', protect, admin, getAllTransactions);
 router.get("/my-transactions", protect, getMyTransactions);
 
