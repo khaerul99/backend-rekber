@@ -3,7 +3,7 @@ const prisma = new PrismaClient();
 const fs = require('fs');
 const path = require('path');
 
-// 1. Ambil Semua Bank
+// Ambil Semua Bank
 exports.getAdminBanks = async (req, res) => {
   try {
     const banks = await prisma.adminBankAccount.findMany({
@@ -15,7 +15,7 @@ exports.getAdminBanks = async (req, res) => {
   }
 };
 
-// 2. Tambah Bank Baru
+// Tambah Bank Baru
 exports.addAdminBank = async (req, res) => {
   try {
     const { bankName, bankNumber, bankHolder } = req.body;
@@ -36,7 +36,7 @@ exports.addAdminBank = async (req, res) => {
   }
 };
 
-// 3. Update Bank
+// Update Bank
 exports.updateAdminBank = async (req, res) => {
   try {
     const { id } = req.params;
@@ -60,7 +60,7 @@ exports.updateAdminBank = async (req, res) => {
   }
 };
 
-// 4. Hapus Bank
+// Hapus Bank
 exports.deleteAdminBank = async (req, res) => {
   try {
     const { id } = req.params;

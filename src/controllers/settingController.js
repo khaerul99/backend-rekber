@@ -5,13 +5,13 @@ const prisma = new PrismaClient();
 
 exports.getPaymentSettings = async (req, res) => {
   try {
-    // Hanya ambil setting admin_fee
+    // ambil setting admin_fee
     const feeSetting = await prisma.systemSetting.findUnique({
       where: { key: 'admin_fee' }
     });
 
     res.json({
-      // Jika belum disetting, default "0"
+      // default "0"
       admin_fee: feeSetting ? feeSetting.value : "0"
     });
   } catch (error) {

@@ -129,22 +129,19 @@ exports.login = async (req, res) => {
         });
     }
 
-    // --- CEK APAKAH USER MENGAKTIFKAN 2FA? ---
+    // --- CEK USER MENGAKTIFKAN 2FA ---
     if (user.twofa_enabled) {
-      // Jika token 2FA belum dikirim dari frontend
       if (!twofaToken) {
         return res.json({
           message: "2FA Required",
-          require2FA: true, // Frontend akan membaca flag ini lalu memunculkan popup input OTP
+          require2FA: true, 
         });
       }
 
-      // Jika token dikirim, verifikasi dulu
       const isValid = authenticator.check(twofaToken, user.twofa_secret);
       if (!isValid) return res.status(400).json({ message: "Kode 2FA Salah" });
     }
 
-    // Jika lolos semua, baru kasih Token JWT
     res.json({
       message: "Login berhasil",
       id: user.id,
@@ -219,14 +216,14 @@ exports.validateSecurity = async (req, res, next) => {
   const userId = req.user.id;
   const user = await prisma.user.findUnique({ where: { id: userId } });
 
-  // 1. Cek PIN (Jika user sudah set PIN)
+  // Cek PIN 
   if (user.pin) {
     if (!pin) return res.status(400).json({ message: "PIN wajib diisi" });
-    const isPinMatch = await bcrypt.compare(pin, user.pin); // Asumsi PIN di-hash
+    const isPinMatch = await bcrypt.compare(pin, user.pin); 
     if (!isPinMatch) return res.status(400).json({ message: "PIN Salah" });
   }
 
-  // 2. Cek Google Auth (Jika user sudah aktifkan 2FA)
+  // Cek Google Auth (Jika user sudah aktifkan 2FA)
   if (user.twofa_enabled) {
     if (!token)
       return res.status(400).json({ message: "Kode 2FA wajib diisi" });
@@ -234,7 +231,7 @@ exports.validateSecurity = async (req, res, next) => {
     if (!isValid) return res.status(400).json({ message: "Kode 2FA Salah" });
   }
 
-  next(); // Lanjut ke fungsi berikutnya (misal: Withdrawal)
+  next(); 
 };
 
 exports.forgotPassword = async (req, res) => {
@@ -246,10 +243,10 @@ exports.forgotPassword = async (req, res) => {
       return res.status(404).json({ message: "Email tidak terdaftar" });
     }
 
-    // 1. Generate Token
+    //  Generate Token
     const resetToken = crypto.randomBytes(20).toString("hex");
 
-    // 2. Simpan ke DB (Expired 1 Jam)
+    // (Expired 1 Jam)
     await prisma.user.update({
       where: { email },
       data: {
@@ -258,7 +255,7 @@ exports.forgotPassword = async (req, res) => {
       },
     });
 
-    // 3. Kirim Email
+    //  Kirim Email
     const resetUrl = `${process.env.CLIENT_URL}/auth/reset-password/${resetToken}`;
 
     const messageHtml = resetPasswordTemplate(resetUrl);
@@ -306,7 +303,7 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
-    // 1. Cari User & Cek Token
+    // Cari User & Cek Token
     const user = await prisma.user.findFirst({
       where: {
         resetPasswordToken: token,
@@ -320,11 +317,11 @@ exports.resetPassword = async (req, res) => {
         .json({ message: "Token tidak valid atau sudah kadaluarsa" });
     }
 
-    // 2. Hash Password Baru
+    // Hash Password Baru
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // 3. Update & Bersihkan Token
+    // Update & Bersihkan Token
     await prisma.user.update({
       where: { id: user.id },
       data: {

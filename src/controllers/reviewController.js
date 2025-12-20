@@ -1,13 +1,13 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-// 1. Buat Review (Khusus Pembeli)
+// Buat Review (Khusus Pembeli)
 exports.createReview = async (req, res) => {
   try {
     const { transactionId, rating, comment } = req.body;
     const reviewerId = req.user.id;
 
-    // 1. Cek Transaksi
+    // Cek Transaksi
     const trx = await prisma.transaction.findUnique({ where: { id: transactionId } });
     
     if (!trx) return res.status(404).json({ message: "Transaksi tidak ditemukan" });
@@ -17,7 +17,7 @@ exports.createReview = async (req, res) => {
         return res.status(400).json({ message: "Transaksi belum selesai" });
     }
 
-    // --- 2. CEK DUPLIKASI (TAMBAHAN PENTING) ---
+    // CEK DUPLIKASI (TAMBAHAN PENTING) 
     const existingReview = await prisma.review.findUnique({
         where: { transactionId: transactionId }
     });
@@ -25,9 +25,8 @@ exports.createReview = async (req, res) => {
     if (existingReview) {
         return res.status(400).json({ message: "Anda sudah memberikan ulasan sebelumnya." });
     }
-    // -------------------------------------------
 
-    // 3. Create Review
+    // Create Review
     const review = await prisma.review.create({
       data: {
         rating: parseInt(rating),
@@ -44,14 +43,14 @@ exports.createReview = async (req, res) => {
   }
 };
 
-// 2. Ambil Review Terbaru (Untuk Landing Page - Public)
+// Ambil Review Terbaru (Untuk Landing Page - Public)
 exports.getLatestReviews = async (req, res) => {
   try {
     const reviews = await prisma.review.findMany({
-      take: 6, // Ambil 6 ulasan terbaru
+      take: 6,
       orderBy: { createdAt: 'desc' },
       include: {
-        reviewer: { select: { username: true } } // Ambil nama pembeli
+        reviewer: { select: { username: true } } 
       }
     });
     res.json(reviews);
