@@ -16,8 +16,7 @@ router.post("/register", register);
 router.post("/login", login);
 router.post('/verify-email', verifyEmail);
 
-// --- ROUTE 2FA BARU ---
-// User harus login dulu (ada token JWT) untuk bisa setup 2FA
+// --- ROUTE 2FA ---
 router.post("/2fa/setup", protect, generate2FA);
 router.post("/2fa/verify", protect, verify2FA);
 

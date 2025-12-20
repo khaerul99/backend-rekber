@@ -13,7 +13,6 @@ const nofification = require('./notificationRoutes')
 const dashboardController = require('../controllers/dashboardController');
 const {protect} = require ('../middlewares/authMiddleware')
 
-// Gabungkan semuanya di sini
 router.use('/auth', authRoutes);               
 router.use('/users', userRoutes);              
 router.use('/transactions', transactionRoutes);

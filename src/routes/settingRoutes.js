@@ -7,15 +7,14 @@ const {getPaymentSettings, updatePaymentSettings} = require ('../controllers/set
 
 
 
-// ... route auth, users, transactions ...
 
-// --- ROUTE ADMIN BANK (BARU) ---
+// --- ROUTE ADMIN BANK  ---
 router.get('/admin-banks', bankController.getAdminBanks); 
 router.post('/admin-banks', protect, upload.single('logo'), bankController.addAdminBank);
 router.put('/admin-banks/:id', protect, upload.single('logo'), bankController.updateAdminBank);
 router.delete('/admin-banks/:id', protect, bankController.deleteAdminBank);
 
-// --- ROUTE SETTING (Hanya untuk Fee) ---
+// --- ROUTE SETTING FEE ---
 router.get('/payment', getPaymentSettings); 
 router.put('/payment', protect, updatePaymentSettings);
 

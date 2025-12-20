@@ -63,7 +63,7 @@ const sendEmail = async (options) => {
 
 
   } catch (error) {
-    console.error("❌ Error System:", error);
+    console.error("Error System:", error);
     throw error;
   }
 };

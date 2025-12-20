@@ -57,7 +57,7 @@ const storage = new CloudinaryStorage({
 // 3. Inisialisasi Multer
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // Maksimal 5MB (Sesuai kodingan kamu tadi)
+  limits: { fileSize: 5 * 1024 * 1024 }, 
 });
 
 module.exports = upload;
