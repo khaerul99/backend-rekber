@@ -188,7 +188,6 @@ exports.getMyTransactions = async (req, res) => {
 
 exports.getAllTransactions = async (req, res) => {
   try {
-    // Cek apakah Admin
     if (req.user.role !== 'ADMIN') {
         return res.status(403).json({ message: 'Forbidden' });
     }
@@ -198,7 +197,7 @@ exports.getAllTransactions = async (req, res) => {
         buyer: { select: { username: true, email: true } },
         seller: { select: { username: true, email: true } },
       },
-      orderBy: { createdAt: 'desc' } // Yang terbaru paling atas
+      orderBy: { createdAt: 'desc' } 
     });
 
     res.json(transactions);
