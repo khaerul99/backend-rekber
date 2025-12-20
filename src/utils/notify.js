@@ -2,7 +2,6 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const sendEmail = require('./sendEmail');
 
-// Fungsi Reusable untuk Kirim Notifikasi
 const notifyUser = async ({ userId, role, title, message, emailSubject }) => {
   try {
     let targets = [];
@@ -20,9 +19,8 @@ const notifyUser = async ({ userId, role, title, message, emailSubject }) => {
 
     if (targets.length === 0) return;
 
-    // Loop untuk kirim ke semua target
     for (const user of targets) {
-        // 1. Simpan ke Database (Untuk Lonceng)
+        // Simpan ke Database (Untuk Lonceng)
         await prisma.notification.create({
             data: {
                 userId: user.id,
@@ -31,7 +29,7 @@ const notifyUser = async ({ userId, role, title, message, emailSubject }) => {
             }
         });
 
-        // 2. Kirim Email (Jika subject diisi)
+        // Kirim Email (Jika subject diisi)
         if (emailSubject) {
             const emailContent = `
                 <h3>Halo ${user.username},</h3>

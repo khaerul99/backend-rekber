@@ -1,6 +1,5 @@
-// src/utils/emailTemplates.js
 
-// 1. Template Dasar (Wadah Utama) agar desain konsisten
+// Template Dasar (Wadah Utama) agar desain konsisten
 const baseTemplate = (content) => `
 <!DOCTYPE html>
 <html>
@@ -47,7 +46,7 @@ exports.transactionNotificationTemplate = (title, message, link) => {
   return baseTemplate(content);
 };
 
-// 2. Template Verifikasi Email (Register)
+// Template Verifikasi Email (Register)
 exports.verifyAccountTemplate = (username, verifyUrl) => {
   const content = `
     <h2>Halo, ${username}! 👋</h2>
@@ -62,7 +61,7 @@ exports.verifyAccountTemplate = (username, verifyUrl) => {
   return baseTemplate(content);
 };
 
-// 3. Template Reset Password (Lupa Password)
+// Template Reset Password (Lupa Password)
 exports.resetPasswordTemplate = (url) => {
   const content = `
     <h2>Permintaan Reset Password 🔒</h2>

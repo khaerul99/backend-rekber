@@ -6,7 +6,7 @@ exports.getMyNotifications = async (req, res) => {
     const notifications = await prisma.notification.findMany({
       where: { userId: req.user.id },
       orderBy: { createdAt: 'desc' },
-      take: 20 // Ambil 20 terakhir aja
+      take: 20 
     });
     res.json(notifications);
   } catch (error) {

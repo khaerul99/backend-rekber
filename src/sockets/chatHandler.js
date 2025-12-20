@@ -21,12 +21,11 @@ module.exports = (io, socket) => {
           is_read: false
         },
         include: {
-        sender: true // <--- PENTING: Ambil data nama pengirim sekalian
+        sender: true 
       }
       });
 
-      // 2. Kirim ke lawan bicara
-      // Gunakan .in() atau .to() untuk mengirim ke room spesifik
+      // Kirim ke lawan bicara
       io.in(data.transactionId).emit('receive_message', savedChat);
       
     } catch (err) {

@@ -15,20 +15,19 @@ exports.getAdminStats = async (req, res) => {
     const successTransactions = await prisma.transaction.count({ where: { status: 'COMPLETED' } });
 
     // Hitung Total Fee (Keuntungan)
-   
     const totalFee = await prisma.transaction.aggregate({
       _sum: { admin_fee: true },
-      where: { status: { in: ['COMPLETED', 'DISBURSED'] } } // Hitung yang sudah selesai/cair
+      where: { status: { in: ['COMPLETED', 'DISBURSED'] } } 
     });
 
     // Hitung Total Uang Masuk
     const totalVolume = await prisma.transaction.aggregate({
       _sum: { amount: true },
-      where: { status: { not: 'CANCELLED' } } // Semua kecuali batal
+      where: { status: { not: 'CANCELLED' } }
     });
 
     const activeHolding = await prisma.transaction.aggregate({
-      _sum: { amount: true }, // Nominal murni penjual
+      _sum: { amount: true }, 
       where: { 
         status: { in: ['PROCESSED', 'SENT', 'COMPLETED'] } 
       }
@@ -68,7 +67,7 @@ exports.getChartData = async (req, res) => {
     });
 
     // --- LOGIKA PENGELOMPOKAN DATA ---
-    // Kita buat array kosong untuk 7 hari ke belakang
+    
     const chartData = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
@@ -86,17 +85,15 @@ exports.getChartData = async (req, res) => {
       });
     }
 
-    // Isi data dari database ke array chartData
     transactions.forEach(trx => {
       const trxDate = trx.createdAt.toISOString().split('T')[0];
       
-      // Cari hari yang cocok di array chartData
       const dayIndex = chartData.findIndex(d => d.date === trxDate);
       
       if (dayIndex !== -1) {
-        chartData[dayIndex].total += 1; // Tambah jumlah transaksi
+        chartData[dayIndex].total += 1; 
         if (trx.status === 'COMPLETED') {
-          chartData[dayIndex].success += 1; // Tambah transaksi sukses
+          chartData[dayIndex].success += 1; 
         }
       }
     });
@@ -123,7 +120,7 @@ exports.getUserStats = async (req, res) => {
 
     // Hitung Total Pemasukan (Sebagai Penjual)
     const totalEarned = await prisma.transaction.aggregate({
-      _sum: { amount: true }, // Nominal bersih tanpa fee
+      _sum: { amount: true }, 
       where: { 
         sellerId: userId,
         status: { in: ['COMPLETED', 'DISBURSED'] }

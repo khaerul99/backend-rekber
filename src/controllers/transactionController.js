@@ -88,7 +88,7 @@ exports.uploadProof = async (req, res) => {
       return res.status(500).json({ error: "Gagal menyimpan ke database: " + dbError.message });
     }
 
-    // 3. Update Status Transaksi
+    // Update Status Transaksi
     if (type === 'payment_proof') {
      const trx =  await prisma.transaction.update({
         where: { id: id },
@@ -123,8 +123,6 @@ exports.uploadProof = async (req, res) => {
 exports.markAsSent = async (req, res) => {
   const { id } = req.params;
   const { trackingNumber } = req.body;
-  
-  // Set waktu otomatis selesai: Sekarang + 48 Jam (2 Hari)
   const autoDate = new Date();
   autoDate.setHours(autoDate.getHours() + 48); 
 
@@ -161,7 +159,7 @@ exports.markAsSent = async (req, res) => {
   res.json({ message: 'Status diubah menjadi DIKIRIM. Timer 2x24 jam dimulai.' });
 };
 
-// List Transaksi Saya (Dashboard User)
+// List Transaksi Saya 
 exports.getMyTransactions = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -186,6 +184,7 @@ exports.getMyTransactions = async (req, res) => {
   }
 };
 
+// List All Transaksi
 exports.getAllTransactions = async (req, res) => {
   try {
     if (req.user.role !== 'ADMIN') {
@@ -233,7 +232,6 @@ exports.getTransactionDetail = async (req, res) => {
 
     if (!transaction) return res.status(404).json({ message: 'Transaksi tidak ditemukan' });
 
-    // Security Check: Pastikan yang lihat cuma Pembeli, Penjual, atau Admin
     if (transaction.buyerId !== userId && transaction.sellerId !== userId && req.user.role !== 'ADMIN') {
       return res.status(403).json({ message: 'Akses ditolak' });
     }
@@ -247,7 +245,7 @@ exports.getTransactionDetail = async (req, res) => {
 // Cek Transaksi Publik (Tanpa Login)
 exports.trackTransaction = async (req, res) => {
   try {
-    const { trx_code } = req.params; // misal: TRX-17123456
+    const { trx_code } = req.params; 
 
     const transaction = await prisma.transaction.findUnique({
       where: { trx_code: trx_code },
@@ -256,7 +254,6 @@ exports.trackTransaction = async (req, res) => {
         status: true,
         total_transfer: true,
         createdAt: true,
-        // Jangan tampilkan data sensitif user lain
       }
     });
 
@@ -271,7 +268,7 @@ exports.trackTransaction = async (req, res) => {
 exports.createDispute = async (req, res) => {
   try {
     const { id } = req.params;
-    const { reason } = req.body; // Alasan komplain
+    const { reason } = req.body;
     const userId = req.user.id;
 
     const transaction = await prisma.transaction.findUnique({ where: { id } });
@@ -332,7 +329,6 @@ exports.adminVerifyPayment = async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Pastikan yang akses adalah ADMIN
     if (req.user.role !== 'ADMIN') {
       return res.status(403).json({ message: 'Hanya Admin yang bisa memvalidasi' });
     }
@@ -373,7 +369,6 @@ exports.markAsCompleted = async (req, res) => {
 
     const transaction = await prisma.transaction.findUnique({ where: { id } });
 
-    // Pastikan hanya Pembeli yang bisa klik
     if (transaction.buyerId !== userId) {
         return res.status(403).json({ message: "Hanya pembeli yang bisa menyelesaikan pesanan." });
     }
@@ -520,9 +515,9 @@ exports.getVerifyingTransactions = async (req, res) => {
 exports.adminRejectPayment = async (req, res) => {
   try {
     const { id } = req.params;
+    
     if (req.user.role !== 'ADMIN') return res.status(403).json({ message: 'Forbidden' });
 
-    // Kembalikan status ke PENDING (Suruh upload ulang)
     const updatedTrx = await prisma.transaction.update({
       where: { id: id },
       data: { status: 'PENDING_PAYMENT' }
@@ -547,7 +542,7 @@ exports.getReadyToDisburse = async (req, res) => {
     if (req.user.role !== 'ADMIN') return res.status(403).json({ message: 'Forbidden' });
 
     const transactions = await prisma.transaction.findMany({
-      where: { status: 'COMPLETED' }, // Hanya ambil yang sudah selesai tapi belum cair
+      where: { status: 'COMPLETED' }, 
       include: {
         seller: { 
           select: { 
@@ -638,7 +633,6 @@ exports.getRefundQueue = async (req, res) => {
     const transactions = await prisma.transaction.findMany({
       where: { status: 'REFUND_PENDING' },
       include: {
-        // Kita butuh data Pembeli (karena uang balik ke pembeli)
         buyer: { 
           select: { 
             username: true, email: true, 
@@ -675,7 +669,7 @@ exports.markAsRefunded = async (req, res) => {
     await prisma.transactionProof.create({
       data: {
         transactionId: id,
-        type: 'admin_refund_proof', // Tipe khusus refund
+        type: 'admin_refund_proof',
         imageUrl: `/uploads/${file.filename}`
       }
     });
