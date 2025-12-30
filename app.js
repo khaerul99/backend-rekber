@@ -13,8 +13,8 @@ const router = require('./src/routes/index');
 const app = express();
 const server = http.createServer(app); 
 const allowedOrigins = [
-  "http://localhost:3000",             // Laptop (Frontend Dev)
-  process.env.CLIENT_URL               // Vercel (Production)
+  "http://localhost:3000",             
+  process.env.CLIENT_URL               
 ];
 
 // Setup Socket.io
